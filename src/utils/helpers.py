@@ -25,8 +25,8 @@ async def overlay_watermark(image_url: str) -> str:
     avatar.paste(watermark, (0, 0), watermark)
 
     # сохраняем измененное изображение
-    sanitize_path = await format_filename(image_url)
-    result = os.path.join(AVATAR_IMAGES_DIR, f"{sanitize_path}_watermark.png")
+    format_path = await format_filename(image_url)
+    result = os.path.join(AVATAR_IMAGES_DIR, f"{format_path}_watermark.png")
     avatar.save(result)
 
     return result

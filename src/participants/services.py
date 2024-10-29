@@ -54,12 +54,12 @@ async def participants_list(
     if sort_by_registration:
         filtered_participants.sort(key=lambda x: x['registration_date'], reverse=True)
 
-    # поиск по других юзеров по расстоянию
-    if max_distance_km is not None and user_email is not None:
+    # поиск других юзеров по расстоянию
+    if max_distance_km is not None:
         user_participant = next((p for p in filtered_participants if p['email'] == user_email), None)
 
         if not user_participant:
-            raise ValueError("user not found")
+            raise ValueError("user not found, you must registered first and provide your email")
 
         user_coords = (user_participant['latitude'], user_participant['longitude'])
 
