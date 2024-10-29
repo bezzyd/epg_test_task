@@ -1,5 +1,7 @@
 import os
+from fastapi import HTTPException
 from aiocached import cached
+from typing import List, Dict
 
 from utils.helpers import overlay_watermark, calculate_distance
 from .models import Participant, participants
@@ -14,7 +16,7 @@ async def create_participant(participant_data: Participant) -> Participant:
 
     # проверяем уникальность email
     if any(p['email'] == participant_data.email for p in participants):
-        raise ValueError("email already registered")
+        raise HTTPException(status_code=409, detail='Email already registered')
 
     participant_data.hash_password()
     # добавляем участника в список
@@ -34,7 +36,7 @@ async def participants_list(
     sort_by_registration,
     user_email: str,
     max_distance_km: float,
-) -> list[dict]:
+) -> List[Dict]:
 
     filtered_participants = participants
 
@@ -59,18 +61,21 @@ async def participants_list(
         user_participant = next((p for p in filtered_participants if p['email'] == user_email), None)
 
         if not user_participant:
-            raise ValueError("user not found, you must registered first and provide your email")
+            raise HTTPException(
+                status_code=404,
+                detail="User not found, you must registered first and provide your email"
+            )
 
         user_coords = (user_participant['latitude'], user_participant['longitude'])
 
         participants_within_distance = []
 
-        for p in participants:
+        for participant in participants:
             # исключаем самого пользователя из списка
-            if p['email'] != user_email:
-                distance = calculate_distance(user_coords, (p['latitude'], p['longitude']))
+            if participant['email'] != user_email:
+                distance = await calculate_distance(user_coords, (participant['latitude'], participant['longitude']))
                 if distance <= max_distance_km:
-                    participants_within_distance.append(p)
+                    participants_within_distance.append(participant)
 
         filtered_participants = participants_within_distance
 

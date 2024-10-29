@@ -2,21 +2,24 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import bcrypt
 
+from evaluations.models import Evaluation
+
 # список для хранения участников
 participants: list[dict] = []
 
 
 class Participant(BaseModel):
-    id: int = Field(..., description="id")
-    avatar: str = Field(..., description="avatar url")
-    gender: str = Field(..., description="gender")
-    first_name: str = Field(..., description="first name")
-    last_name: str = Field(..., description="last name")
-    email: EmailStr = Field(..., description="email")
-    password: str = Field(..., description="password")
-    registration_date: datetime = Field(default_factory=datetime.utcnow)
-    latitude: float = Field(..., description="latitude")
-    longitude: float = Field(..., description="longitude")
+    id: int = Field(default=..., description="id")
+    avatar: str = Field(default=..., description="avatar url")
+    gender: str = Field(default=..., description="gender")
+    first_name: str = Field(default=..., description="first name")
+    last_name: str = Field(default=..., description="last name")
+    email: EmailStr = Field(default=..., description="email")
+    password: str = Field(default=..., description="password")
+    registration_date: datetime = Field(default_factory=datetime.utcnow, description="registration date")
+    latitude: float = Field(default=..., description="latitude")
+    longitude: float = Field(default=..., description="longitude")
+    evaluations: list[Evaluation] = Field(default_factory=list, description="evaluations")
 
     @field_validator('latitude')
     @classmethod
