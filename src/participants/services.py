@@ -1,41 +1,21 @@
 import os
-import requests
+from functools import lru_cache
 
-from fastapi import HTTPException
-from PIL import Image
-from io import BytesIO
-
-from .utils import format_filename
+from utils.helpers import overlay_watermark
 from .models import Participant, participants
 
-WATERMARK_PATH = os.path.join('watermark.png')
-AVATAR_IMAGES_DIR = os.path.join('images')
-
-
-async def overlay_watermark(image_url: str) -> str:
-    """
-    Asynchronous function for watermarking an avatar
-    """
-    # загрузка аватарки, сейчас реализовано по ссылке, например
-    # 'https://masterpiecer-images.s3.yandex.net/4d2ee26774cf11eeaead5696910b1137:upscaled'
-    response = requests.get(image_url)
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="error loading image")
-
-    # накладываем водяной знак
-    avatar = Image.open(BytesIO(response.content))
-    watermark = Image.open(WATERMARK_PATH)
-    avatar.paste(watermark, (0, 0), watermark)
-
-    # сохраняем измененное изображение
-    sanitize_path = await format_filename(image_url)
-    result = os.path.join(AVATAR_IMAGES_DIR, f"{sanitize_path}_watermark.png")
-    avatar.save(result)
-
-    return result
+# путь к водяному знаку
+WATERMARK_PATH = os.path.join('src/static/watermark.png')
+# путь к директории, хранящей аватары участников
+AVATAR_IMAGES_DIR = os.path.join('src/static/images')
 
 
 async def create_participant(participant_data: Participant) -> Participant:
+
+    # проверяем уникальность email
+    if any(p['email'] == participant_data.email for p in participants):
+        raise ValueError("email already registered")
+
     participant_data.hash_password()
     # добавляем участника в список
     participants.append(participant_data.dict())
@@ -44,3 +24,32 @@ async def create_participant(participant_data: Participant) -> Participant:
     participant_data.avatar = await overlay_watermark(participant_data.avatar)
 
     return participant_data
+
+
+@lru_cache(maxsize=128)
+async def participants_list(
+    gender: str,
+    first_name: str,
+    last_name: str,
+    sort_by_registration,
+) -> list[dict]:
+
+    filtered_participants = participants
+
+    # фильтрация по полу
+    if gender:
+        filtered_participants = [p for p in filtered_participants if p['gender'] == gender]
+
+    # фильтрация по имени
+    if first_name:
+        filtered_participants = [p for p in filtered_participants if p['first_name'].lower() == first_name.lower()]
+
+    # фильтрация по фамилии
+    if last_name:
+        filtered_participants = [p for p in filtered_participants if p['last_name'].lower() == last_name.lower()]
+
+    # сортировка по дате регистрации
+    if sort_by_registration:
+        filtered_participants.sort(key=lambda x: x['registration_date'],reverse=True)
+
+    return filtered_participants
