@@ -1,7 +1,7 @@
 import os
-from functools import lru_cache
+from aiocached import cached
 
-from utils.helpers import overlay_watermark
+from utils.helpers import overlay_watermark, calculate_distance
 from .models import Participant, participants
 
 # путь к водяному знаку
@@ -26,12 +26,14 @@ async def create_participant(participant_data: Participant) -> Participant:
     return participant_data
 
 
-@lru_cache(maxsize=128)
+@cached(ttl=60)
 async def participants_list(
     gender: str,
     first_name: str,
     last_name: str,
     sort_by_registration,
+    user_email: str,
+    max_distance_km: float,
 ) -> list[dict]:
 
     filtered_participants = participants
@@ -50,6 +52,26 @@ async def participants_list(
 
     # сортировка по дате регистрации
     if sort_by_registration:
-        filtered_participants.sort(key=lambda x: x['registration_date'],reverse=True)
+        filtered_participants.sort(key=lambda x: x['registration_date'], reverse=True)
+
+    # поиск по других юзеров по расстоянию
+    if max_distance_km is not None and user_email is not None:
+        user_participant = next((p for p in filtered_participants if p['email'] == user_email), None)
+
+        if not user_participant:
+            raise ValueError("user not found")
+
+        user_coords = (user_participant['latitude'], user_participant['longitude'])
+
+        participants_within_distance = []
+
+        for p in participants:
+            # исключаем самого пользователя из списка
+            if p['email'] != user_email:
+                distance = calculate_distance(user_coords, (p['latitude'], p['longitude']))
+                if distance <= max_distance_km:
+                    participants_within_distance.append(p)
+
+        filtered_participants = participants_within_distance
 
     return filtered_participants

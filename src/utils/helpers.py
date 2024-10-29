@@ -1,6 +1,7 @@
 import re
 import os
 import requests
+from geopy.distance import great_circle
 
 from fastapi import HTTPException
 from PIL import Image
@@ -35,3 +36,8 @@ async def format_filename(filename: str) -> str:
     """Remove invalid characters from the file name"""
     # оставляем только буквы, цифры, подчеркивания, дефисы и точки, заменяем пробелы на нижнее подчеркивание
     return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename).replace(' ', '_')
+
+
+def calculate_distance(coord1: tuple, coord2: tuple) -> float:
+    """Calculate the great-circle distance between two points"""
+    return great_circle(coord1, coord2).kilometers
