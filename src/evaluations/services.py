@@ -23,6 +23,11 @@ async def evaluate_participant(sender_id: int, recipient_id: int, evaluation) ->
     if not sender:
         raise HTTPException(status_code=404, detail="Sender not found")
 
+    existing_evaluation = next((e for e in recipient['evaluations'] if e['sender_id'] == sender_id), None)
+
+    if existing_evaluation:
+        raise HTTPException(status_code=400, detail="You have already liked this participant")
+
     # сохраняем оценку
     recipient['evaluations'].append(evaluation.dict())
 
