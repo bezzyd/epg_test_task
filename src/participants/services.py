@@ -19,11 +19,12 @@ async def create_participant(participant_data: Participant) -> Participant:
         raise HTTPException(status_code=409, detail='Email already registered')
 
     participant_data.hash_password()
-    # добавляем участника в список
-    participants.append(participant_data.dict())
 
     # накладываем водяной знак и обновляем поле avatar
     participant_data.avatar = await overlay_watermark(participant_data.avatar)
+
+    # добавляем участника в список
+    participants.append(participant_data.dict())
 
     return participant_data
 
