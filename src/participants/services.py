@@ -18,6 +18,9 @@ async def create_participant(participant_data: Participant) -> Participant:
     if any(p['email'] == participant_data.email for p in participants):
         raise HTTPException(status_code=409, detail='Email already registered')
 
+    if any(p['id'] == participant_data.id for p in participants):
+        raise HTTPException(status_code=409, detail='Id already registered')
+
     participant_data.hash_password()
 
     # накладываем водяной знак и обновляем поле avatar
